@@ -48,7 +48,7 @@ preferred_by_affiliation_bar = ggplot(affiliation_and_preferred_counts, aes(x = 
            position = "stack") +
   scale_fill_manual(values = c("blue2", "red2", "purple2", "green2")) +
   theme(legend.position="bottom") +
-  theme(text = element_text(size = 12)) +
+  theme(text = element_text(size = 9)) +
   scale_y_continuous(breaks=seq(0,1200,100)) +
   labs(x = "Preferred candidate", y = "N") +
   scale_x_discrete(labels= x_labels_PrefCand$label)
@@ -76,7 +76,7 @@ state_by_preferred_bar = ggplot(state_dist, aes(fill=PrefCand, y=n, x=state)) +
   theme(legend.position="bottom") +
   labs(fill = "Preferred candidate", y = "N", x = "State") +
   scale_fill_manual(values = c("blue3","red3")) +
-  theme(text = element_text(size = 12)) +
+  theme(text = element_text(size = 9)) +
   scale_y_continuous(breaks=seq(0,150,10))
 save(state_by_preferred_bar, file="code/plots/state_by_preferred_bar.rdata")
 
@@ -98,7 +98,7 @@ age_by_preferred_density = ggplot(data2fit, aes(x=age, color=PrefCand, fill=Pref
   scale_fill_manual(values = c("blue3","red3")) +
   guides(color = "none", alpha = "none") +
   labs(fill = "Preferred candidate", x = "Age", y = "Density") + 
-  theme(text = element_text(size = 12)) +
+  theme(text = element_text(size = 9)) +
   theme(legend.position="bottom")
 save(age_by_preferred_density, data2fit, file="code/plots/age_by_preferred_density.rdata")
 
@@ -113,7 +113,7 @@ print(paste("PrefStrength: mean ", PrefStrength_mean, " SD: ", PrefStrength_sd, 
 print(paste("PrefStrength Dems: mean ", dem_PrefStrength_mean, " SD: ", dem_PrefStrength_sd, sep=""))
 print(paste("PrefStrength Reps: mean ", rep_PrefStrength_mean, " SD: ", rep_PrefStrength_sd, sep=""))
 PrefStrength_var_test = var.test(data2fit$PrefStrength[data2fit$PrefCand=="Dem"], data2fit$PrefStrength[data2fit$PrefCand=="Rep"])
-PrefStrength_t_test = t.test(data2fit$PrefStrength[data2fit$PrefCand=="Dem"], data2fit$PrefStrength[data2fit$PrefCand=="Rep"], paired = F, var.equal = PrefStrength_var_test$p.value>0.05)
+PrefStrength_t_test = t.test(data2fit$PrefStrength[data2fit$PrefCand=="Dem"], data2fit$PrefStrength[data2fit$PrefCand=="Rep"], paired = FALSE, var.equal = PrefStrength_var_test$p.value>0.05)
 print(paste("indepentdent samples t-test, p-value = ", round(PrefStrength_t_test$p.value,4), sep=""))
 PrefStrength_perc_100 = round(sum(data2fit$PrefStrength==100, na.rm=T)/nrow(data2fit)*100, 1)
 PrefStrength_perc_less_50 = round(sum(data2fit$PrefStrength<50, na.rm=T)/nrow(data2fit)*100, 1)
@@ -127,7 +127,7 @@ prefStrength_by_preferred_density = ggplot(data2fit, aes(x=PrefStrength, color=P
   scale_fill_manual(values = c("blue3","red3")) +
   guides(color = "none", alpha = "none") +
   labs(fill = "Preferred candidate", x = "Preference strength", y = "Density") + 
-  theme(text = element_text(size = 12)) +
+  theme(text = element_text(size = 9)) +
   theme(legend.position="bottom")
 save(prefStrength_by_preferred_density, data2fit, file="code/plots/prefStrength_by_preferred_density.rdata")
 
@@ -142,7 +142,7 @@ print(paste("WinProb: mean ", WinProb_mean, " SD: ", WinProb_sd, sep=""))
 print(paste("WinProb Dems: mean ", dem_WinProb_mean, " SD: ", dem_WinProb_sd, sep=""))
 print(paste("WinProb Reps: mean ", rep_WinProb_mean, " SD: ", rep_WinProb_sd, sep=""))
 WinProb_var_test = var.test(data2fit$WinProb[data2fit$PrefCand=="Dem"], data2fit$WinProb[data2fit$PrefCand=="Rep"])
-WinProb_t_test = t.test(data2fit$WinProb[data2fit$PrefCand=="Dem"], data2fit$WinProb[data2fit$PrefCand=="Rep"], paired = F, var.equal = WinProb_var_test$p.value>0.05)
+WinProb_t_test = t.test(data2fit$WinProb[data2fit$PrefCand=="Dem"], data2fit$WinProb[data2fit$PrefCand=="Rep"], paired = FALSE, var.equal = WinProb_var_test$p.value>0.05)
 print(paste("indepentdent samples t-test, p-value = ", round(WinProb_t_test$p.value,4), sep=""))
 WinProb_perc_above_50 = round(sum(data2fit$WinProb>50, na.rm=T)/nrow(data2fit)*100,1)
 print(paste(WinProb_perc_above_50, "% of participants believed their candidate will win (>50% chance)",sep=""))
@@ -153,7 +153,7 @@ winProb_by_preferred_density = ggplot(data2fit, aes(x=WinProb, color=PrefCand, f
   scale_color_manual(values = c("blue3","red3")) +
   scale_fill_manual(values = c("blue3","red3")) +
   guides(color = "none", alpha = "none") +
-  theme(text = element_text(size = 12)) +
+  theme(text = element_text(size = 9)) +
   theme(legend.position="bottom") +
   labs(fill = "Preferred candidate", x = "Prior win belief", y = "Density")
 save(winProb_by_preferred_density, data2fit, file="code/plots/winProb_by_preferred_density.rdata")
@@ -178,7 +178,7 @@ fraudProb_by_preferred_density = ggplot(data2fit, aes(x=FraudProb, color=PrefCan
   scale_color_manual(values = c("blue3","red3")) +
   scale_fill_manual(values = c("blue3","red3")) +
   guides(color = "none", alpha = "none") +
-  theme(text = element_text(size = 12)) +
+  theme(text = element_text(size = 9)) +
   theme(legend.position="bottom") +
   labs(fill = "Preferred candidate", x = "Prior fraud belief", y = "Density")
 save(fraudProb_by_preferred_density, file="code/plots/fraudProb_by_preferred_density.rdata")

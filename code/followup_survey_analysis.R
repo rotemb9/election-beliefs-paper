@@ -129,7 +129,7 @@ print(paste(round(perc_dems_fraud_dem_unlikely,2), "% of democrats believed it w
 plot_fraud_biden = ggplot(fraud_biden_by_prefcand, aes(y = n, x = FraudProbCatBiden, fill = PrefCand_present)) +
   geom_bar(stat="identity", position=position_dodge()) +
   scale_fill_manual(values = c("blue3","purple3", "red3")) +
-  labs(x = "Likelihood of fraud in favor of Biden\nsignificantly affecting election results", fill = "Preferred candidate during follow-up survey") +
+  labs(x = "Likelihood of significant fraud in favor of Biden", fill = "Preferred candidate during follow-up survey") +
   theme(text = element_text(size = 12)) +
   theme(legend.position="bottom") +
   scale_y_continuous(breaks = seq(0, 500, 50), limits = c(0,500))
@@ -139,7 +139,7 @@ save(plot_fraud_biden, fraud_biden_by_prefcand, file="code/plots/plot_fraud_bide
 plot_fraud_trump = ggplot(fraud_trump_by_prefcand, aes(y = n, x = FraudProbCatTrump, fill = PrefCand_present)) +
   geom_bar(stat="identity", position=position_dodge()) +
   scale_fill_manual(values = c("blue3","purple3", "red3")) +
-  labs(x = "Likelihood of fraud in favor of Trump\nsignificantly affecting election results", fill = "Preferred candidate during follow-up survey") +
+  labs(x = "Likelihood of significant fraud in favor of Trump", fill = "Preferred candidate during follow-up survey") +
   theme(text = element_text(size = 12)) +
   theme(legend.position="bottom") +
   scale_y_continuous(breaks = seq(0, 500, 50), limits = c(0,500))
@@ -202,15 +202,29 @@ x_labels_PrefCand_present = data.frame("PrefCand_present" = levels(followup_surv
 x_labels_PrefCand_present$N = data.frame(table(followup_survey_data$PrefCand_present, dnn="PrefCand_present"))$Freq
 x_labels_PrefCand_present$label = paste(x_labels_PrefCand_present$PrefCand_present, "\n(N=",x_labels_PrefCand_present$N , ")", sep="")
 
-# plot all the different types of "fraud" and their believed impact as a function of the preferred candidate
-fraud_types = c("RightMediaFalseNews", "LeftMediaFalseNews", "NewsAggregFalseNews", "ElectoralManipulationPreElection", "VoteFraud", "BallotFraud", "MailFraud", "ElectronicSystems", "Misrecording", "Misreporting", "SocialMediaFalseNews")
+# plot all the different "fraudulent" activities and their believed impact as a function of the preferred candidate
+fraud_types = c("ElectoralManipulationPreElection", "NewsAggregFalseNews", "RightMediaFalseNews", "LeftMediaFalseNews", "SocialMediaFalseNews", "VoteFraud", "MailFraud", "BallotFraud", "ElectronicSystems", "Misrecording", "Misreporting")
 fraud_types_impact = paste("Impact", fraud_types, sep="")
 fraud_types_benefit = paste("Benefit", fraud_types, sep="")
 
-# plot all the different types of "fraud" and their believed benefiting candidate as a function of the preferred candidate
+# plot all the different "fraudulent" activities and their believed benefiting candidate as a function of the preferred candidate
 curr_data = select(followup_survey_data, "participant_num", "PrefCand_present", all_of(fraud_types_benefit))
 curr_data_long = gather(curr_data, activity_type, benefit, all_of(fraud_types_benefit),factor_key = FALSE)
 curr_data_long$activity_type <- sub("Benefit", "", curr_data_long$activity_type)
+curr_data_long$activity_type = factor(curr_data_long$activity_type, levels = fraud_types)
+activity_type_labels = c("Electoral manipulation pre-election",
+                         "False news: news aggregator services",
+                         "False news: \"right-wing\" media",
+                         "False news: \"left-wing\" media",
+                         "False information in social media",
+                         "Vote buying / impersonation / misuse",
+                         "Mail-in ballot fraud",
+                         "Ballot manipulation / stuffing",
+                         "Electronic voting systems tempering",
+                         "Misrecording by counters / officials",
+                         "Misreporting by officials")
+names(activity_type_labels) = fraud_types
+
 fraud_benefit_density = ggplot(curr_data_long, aes(x=benefit, color=PrefCand_present, fill=PrefCand_present, alpha = 0.5)) +
   geom_density() +
   scale_color_manual(values = c("purple3", "blue3", "red3")) +
@@ -218,38 +232,38 @@ fraud_benefit_density = ggplot(curr_data_long, aes(x=benefit, color=PrefCand_pre
   guides(alpha = "none", color = "none") +
   labs(x = "", fill = "Preferred candidate") +
   scale_x_continuous(breaks = c(0,50, 100),labels = c("100%\nBiden", "even\nsplit", "100%\nTrump")) +
-  theme(text = element_text(size = 10)) +
+  theme(text = element_text(size = 9)) +
   theme(legend.position="bottom") +
-  facet_wrap(~ activity_type, ncol = 3, scales = "free")
+  facet_wrap(~ activity_type, labeller = labeller(activity_type = activity_type_labels), ncol = 3, scales = "free")
 save(fraud_benefit_density, curr_data_long, file = "code/plots/fraud_benefit_density.rdata")
 
-### Activities considered as fraud
+### "Fraudulent" activities considered
 patterns = c(
+  "Electorate manipulation prior to election day",
+  "news aggregator services",
   "right-wing",
   "left-wing",
-  "news aggregator services",
-  "Electorate manipulation prior to election day",
+  "Social media campaigns spreading false information",
   "Vote buying / voter impersonation / misuse of proxy votes",
-  "Ballot manipulation or ballot-box stuffing",
   "Mail-in ballot fraud",
+  "Ballot manipulation or ballot-box stuffing",
   "Tampering with electronic voting systems",
   "Mis-recording of votes by state vote-counters and state electoral officials",
-  "Mis-reporting of final vote counts by state electoral officials",
-  "Social media campaigns spreading false information"
+  "Mis-reporting of final vote counts by state electoral officials"
 )
 
 full_patterns = c(
+  "Electorate manipulation prior to election day",
+  "False news stories by news aggregator services (e.g., Reuters, Allied Press)",
   "False news stories by \"right-wing\" media",
   "False news stories by \"left-wing\" media",
-  "False news stories by news aggregator services (e.g., Reuters, Allied Press)",
-  "Electorate manipulation prior to election day",
+  "Social media campaigns spreading false information",
   "Vote buying / voter impersonation / misuse of proxy votes",
-  "Ballot manipulation or ballot-box stuffing",
   "Mail-in ballot fraud",
+  "Ballot manipulation or ballot-box stuffing",
   "Tampering with electronic voting systems",
   "Mis-recording of votes by state vote-counters and state electoral officials",
-  "Mis-reporting of final vote counts by state electoral officials",
-  "Social media campaigns spreading false information"
+  "Mis-reporting of final vote counts by state electoral officials"
 )
 followup_survey_data_with_activities = as.data.frame(followup_survey_data)
 for (activity_type in fraud_types) {
@@ -280,7 +294,7 @@ fraud_activities_bar = ggplot(fraud_activities_plot_data_long_bar, aes(x = activ
   scale_fill_manual(values = c("purple3", "blue3", "red3")) +
   theme(legend.position="bottom") +
   scale_y_continuous(breaks=seq(0,100,10), limits = c(0,100)) +
-  scale_x_discrete(labels = full_patterns) +
+  scale_x_discrete(limits = rev(levels(fraud_activities_plot_data_long_bar$activity)), labels = rev(full_patterns)) +
   labs(x = "Activity", y = "% participants", fill = "Preferred candidate") +
   theme(text = element_text(size = 12),axis.text.y = element_text(hjust = 0)) +
   coord_flip()

@@ -7,6 +7,7 @@
 
 ## Use checkpoint for reproducibility
 library(checkpoint)
+#checkpoint("2021-06-30", scanForPackages = FALSE)
 checkpoint("2021-06-30")
 ## Required R package
 library(grid)
@@ -22,13 +23,14 @@ library(cowplot)
 library(GauPro)
 library(ggplot2)
 library(tidyverse)
+library(Matrix)
 
 ## Clear workspace
 rm(list=ls())
 
 ## to save time, the gp_reg vars can be loaded from a pre-saved copy
 # do not use the loaded one if you haven't run this before or if you changed something in the data!
-load_gp_reg = TRUE
+load_gp_reg = FALSE
 if (load_gp_reg) {
   warning("loading instead of calculating GP regression")
 }
@@ -121,9 +123,40 @@ fraudUpdateByPref = ggplot(data2fit, aes(x = PrefStrength, y = DeltaFraudProb, c
   scale_y_continuous(breaks=seq(-100,100,20)) +
   scale_x_continuous(breaks=seq(0,100,10)) +
   scale_color_manual(values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
-  labs(x = "Preference strength", y = "Fraud belief update\n(after - before)", color = "Map type") +
+  labs(x = "Preference strength", y = "Fraud belief update\n(after - before)", color = "Outcome") +
   theme(text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white"))
 save(fraudUpdateByPref, data2fit, file="code/plots/fraudUpdateByPref.rdata")
+
+# verify that the crossover in the fraudUpdateByPref plot above is due to the linearity constraints, by fitting a GP regression smoother
+x_loss_fraudupdate_by_pref = data2fit$PrefStrength[!data2fit$MapMatchPrefer]
+y_loss_fraudupdate_by_pref = data2fit$DeltaFraudProb[!data2fit$MapMatchPrefer]
+if (load_gp_reg) {
+  load("code/plots/GP_reg_loss_fraudupdate_by_pref.rdata")
+} else {
+  GP_reg_loss_fraudupdate_by_pref = GauPro(x_loss_fraudupdate_by_pref, y_loss_fraudupdate_by_pref, parallel=FALSE)
+  save(GP_reg_loss_fraudupdate_by_pref, file = "code/plots/GP_reg_loss_fraudupdate_by_pref.rdata")
+}
+data2fit$gp_reg_fraudupdate_by_pref[!data2fit$MapMatchPrefer] = GP_reg_loss_fraudupdate_by_pref$predict(x_loss_fraudupdate_by_pref)
+x_win_fraudupdate_by_pref = data2fit$PrefStrength[data2fit$MapMatchPrefer]
+y_win_fraudupdate_by_pref = data2fit$DeltaFraudProb[data2fit$MapMatchPrefer]
+if (load_gp_reg) {
+  load("code/plots/GP_reg_win_fraudupdate_by_pref.rdata")
+} else {
+  GP_reg_win_fraudupdate_by_pref = GauPro(x_win_fraudupdate_by_pref, y_win_fraudupdate_by_pref, parallel=FALSE)
+  save(GP_reg_win_fraudupdate_by_pref, file = "code/plots/GP_reg_win_fraudupdate_by_pref.rdata")
+}
+data2fit$gp_reg_fraudupdate_by_pref[data2fit$MapMatchPrefer] = GP_reg_win_fraudupdate_by_pref$predict(x_win_fraudupdate_by_pref)
+
+ggplot(data2fit, aes(x = PrefStrength, y = DeltaFraudProb, color = MapMatchPrefer)) +
+  geom_hline(aes(yintercept = 0), color = "black") +
+  geom_point(alpha = 0.1) +
+  #geom_smooth(method = "lm", alpha = 0.2, linetype="dashed") +
+  geom_line(aes(y=gp_reg_fraudupdate_by_pref, color = MapMatchPrefer)) +
+  scale_y_continuous(breaks=seq(-100,100,20)) +
+  scale_x_continuous(breaks=seq(0,100,10)) +
+  scale_color_manual(values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
+  labs(x = "Preference strength", y = "Fraud belief update\n(after - before)", color = "Outcome") +
+  theme(text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white"))
 
 ## prior beliefs (by map type)
 fraudUpdateByPred = ggplot(data2fit, aes(x = WinProb, y = DeltaFraudProb, color = MapMatchPrefer)) +
@@ -133,9 +166,54 @@ fraudUpdateByPred = ggplot(data2fit, aes(x = WinProb, y = DeltaFraudProb, color 
   scale_y_continuous(breaks=seq(-100,100,20)) +
   scale_x_continuous(breaks=seq(0,100,10)) +
   scale_color_manual(values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
-  labs(x = "Prior win belief", y = "Fraud belief update\n(after - before)", color = "Map type") +
+  labs(x = "Prior win belief", y = "Fraud belief update\n(after - before)", color = "Outcome") +
   theme(text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white"))
 save(fraudUpdateByPred, data2fit, file="code/plots/fraudUpdateByPred.rdata")
+
+## color by MapMatchPredict instead?
+data2fit$PredMap[(data2fit$PrefCand=="Dem" & data2fit$WinProb > 50) | (data2fit$PrefCand=="Rep" & data2fit$WinProb <= 50)] = "Dem"
+data2fit$PredMap[(data2fit$PrefCand=="Rep" & data2fit$WinProb > 50) | (data2fit$PrefCand=="Dem" & data2fit$WinProb <= 50)] = "Rep"
+data2fit$MapMatchPredict = data2fit$Map == data2fit$PredMap
+fraudUpdateByPred2 = ggplot(data2fit, aes(x = WinProb, y = DeltaFraudProb, color = MapMatchPredict)) +
+  geom_hline(aes(yintercept = 0), color = "black") +
+  geom_smooth(method = "lm", alpha = 0.8) +
+  geom_point(alpha = 0.1) +
+  scale_y_continuous(breaks=seq(-100,100,20)) +
+  scale_x_continuous(breaks=seq(0,100,10)) +
+  scale_color_manual(values = c("#4dac26", "#d01c8b"), labels = c("Disconfirmatory", "Confirmatory")) +
+  labs(x = "Prior win belief", y = "Fraud belief update\n(after - before)", color = "Outcome") +
+  theme(text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white"))
+
+# fit a GP regression smoother to the fraudUpdateByPred data as well
+x_loss_fraudupdate_by_pred = data2fit$WinProb[!data2fit$MapMatchPrefer]
+y_loss_fraudupdate_by_pred = data2fit$DeltaFraudProb[!data2fit$MapMatchPrefer]
+if (load_gp_reg) {
+  load("code/plots/GP_reg_loss_fraudupdate_by_pred.rdata")
+} else {
+  GP_reg_loss_fraudupdate_by_pred = GauPro(x_loss_fraudupdate_by_pred, y_loss_fraudupdate_by_pred, parallel=FALSE)
+  save(GP_reg_loss_fraudupdate_by_pred, file = "code/plots/GP_reg_loss_fraudupdate_by_pred.rdata")
+}
+data2fit$gp_reg_fraudupdate_by_pred[!data2fit$MapMatchPrefer] = GP_reg_loss_fraudupdate_by_pred$predict(x_loss_fraudupdate_by_pred)
+x_win_fraudupdate_by_pred = data2fit$WinProb[data2fit$MapMatchPrefer]
+y_win_fraudupdate_by_pred = data2fit$DeltaFraudProb[data2fit$MapMatchPrefer]
+if (load_gp_reg) {
+  load("code/plots/GP_reg_win_fraudupdate_by_pred.rdata")
+} else {
+  GP_reg_win_fraudupdate_by_pred = GauPro(x_win_fraudupdate_by_pred, y_win_fraudupdate_by_pred, parallel=FALSE)
+  save(GP_reg_win_fraudupdate_by_pred, file = "code/plots/GP_reg_win_fraudupdate_by_pred.rdata")
+}
+data2fit$gp_reg_fraudupdate_by_pred[data2fit$MapMatchPrefer] = GP_reg_win_fraudupdate_by_pred$predict(x_win_fraudupdate_by_pred)
+
+ggplot(data2fit, aes(x = WinProb, y = DeltaFraudProb, color = MapMatchPrefer)) +
+  geom_hline(aes(yintercept = 0), color = "black") +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = "lm", alpha = 0.2, linetype="dashed") +
+  geom_line(aes(y=gp_reg_fraudupdate_by_pred, color = MapMatchPrefer)) +
+  scale_y_continuous(breaks=seq(-100,100,20)) +
+  scale_x_continuous(breaks=seq(0,100,10)) +
+  scale_color_manual(values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
+  labs(x = "Prior win belief", y = "Fraud belief update\n(after - before)", color = "Outcome") +
+  theme(text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white"))
 
 ### fraud belief update for each partisan group
 ## losing + dem
@@ -219,8 +297,8 @@ bar_plot_pref_cat = ggplot(data=data_bar_plot_pref_cat, aes(x=PrefStrength_cat, 
   geom_point(data=data2fit, aes(y = DeltaFraudProb, x = PrefStrength_cat, color=MapMatchPrefer), alpha = 0.2, position=position_jitterdodge(jitter.width = .25, dodge.width = 0.8))+
   xlab("Preference Strength") +
   scale_y_continuous("Fraud belief update\n(after - before)",breaks=seq(-100, 100, 20)) +
-  scale_fill_manual("Map type", values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
-  scale_color_manual("Map type", values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
+  scale_fill_manual("Outcome", values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
+  scale_color_manual("Outcome", values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
   theme(text = element_text(size = 10), legend.position="bottom", panel.grid.major.x = element_blank(), panel.background = element_rect(fill = "white"), panel.grid.major = element_line(colour = "gray"), panel.grid.minor = element_blank()) +
   scale_x_discrete(labels= x_labels_PrefStrength_cat$label)
 save(bar_plot_pref_cat, data_bar_plot_pref_cat, file = "code/plots/bar_plot_pref_cat.rdata")
@@ -292,7 +370,7 @@ priorFraud_by_priorWin_preferred_scatter = ggplot(data2fit, aes(x=WinProb, y=Fra
   scale_y_continuous(breaks=seq(0, 100, 10)) +
   scale_x_continuous(breaks = seq(0,100,10)) +
   labs(x = "Prior win belief", y = "Prior belief in fraud ", color = "Preferred candidate") +
-  theme(text = element_text(size = 12), legend.position="bottom")
+  theme(text = element_text(size = 9), legend.position="bottom")
 save(priorFraud_by_priorWin_preferred_scatter, data2fit, file="code/plots/priorFraud_by_priorWin_preferred_scatter.rdata")
 
 
@@ -399,7 +477,7 @@ partisan_direction_desirability_effect_prepost = ggplot(data=prepost_data_sum, a
   geom_errorbar(position=position_dodge(0.8), width=1/8, aes(ymin=mean-SEM, ymax=mean+SEM))  + # add error bar of SEM
   geom_point(data=data_for_points, aes(y = FraudJudgement, x = FraudTimePoint, color = PrefCand), position=position_jitterdodge(jitter.width = 1.2, dodge.width = 0.8), alpha=0.2, size = 0.8)+
   scale_x_discrete(name = "Time point and scenario") +
-  scale_y_continuous("Fraud belief update\n(after - before)",breaks=seq(0, 100, 10), limits = c(0, 100)) +
+  scale_y_continuous("Fraud belief",breaks=seq(0, 100, 10), limits = c(0, 100)) +
   scale_fill_manual("Preferred candidate", values=c("blue4","red4")) + # color of bars
   scale_color_manual("Preferred candidate", values=c("blue4","red4")) + # color of dots
   theme(text = element_text(size = 10), legend.position="bottom", panel.grid.major.x = element_blank(), panel.background = element_rect(fill = "white"), panel.grid.major = element_line(colour = "gray"), panel.grid.minor = element_blank(), strip.placement = "outside", strip.background = element_rect(fill = "white")) +
