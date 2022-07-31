@@ -24,6 +24,7 @@ library(GauPro)
 library(ggplot2)
 library(tidyverse)
 library(Matrix)
+library(AER)
 
 ## Clear workspace
 rm(list=ls())
@@ -361,6 +362,43 @@ save(model1_rep_prereg_table, file="code/plots/model1_rep_prereg_table.rdata")
 model1_full = lm(FraudProb_z ~ 1 + WinProb_z * PrefCand * PrefStrength_z + age_z + numericEndTime_z, data=data2fit, na.action=na.omit)
 summary(model1_full)
 
+### test variance explained by expected winner / preferred winner seperately
+data2fit$FraudProbMap_z = scale(data2fit$FraudProbMap, center = TRUE, scale=TRUE)
+
+# code binarized winner prediction
+data2fit$WinPred = "Neutral"
+data2fit$WinPred[(data2fit$WinProbRep > 50)] = "Rep"
+data2fit$WinPred[(data2fit$WinProbRep < 50)] = "Dem"
+
+# code whether the map fits participant's prediction with regard to the winner
+data2fit$MapMatchPredict = data2fit$Map == data2fit$WinPred
+data2fit$MapMatchPredict[data2fit$WinPred=="Neutral"] = FALSE
+data2fit$MapMatchPrefer = as.logical(data2fit$MapMatchPrefer)
+
+model_expected_winner = lm(DeltaFraudProb_z ~ MapMatchPredict, data=data2fit, na.action=na.omit)
+summary(model_expected_winner)
+model_preferred_winner = lm(DeltaFraudProb_z ~ MapMatchPrefer, data=data2fit, na.action=na.omit)
+summary(model_preferred_winner)
+model_expected_and_preferred = lm(DeltaFraudProb_z ~ MapMatchPredict + MapMatchPrefer, data=data2fit, na.action=na.omit)
+summary(model_expected_and_preferred)
+
+## main analysis resticted to follow-up participants
+follow_up_participants = read.csv(paste(input_path, "only_included_followup_participants.csv",sep=""))
+data2fit_followup = data2fit[data2fit$participant_num %in% follow_up_participants$participant_num,]
+print("Fraud belief update - restricted to follow up participants")
+# loss
+print(paste("LOSS scenario: N = ", sum(!data2fit_followup$MapMatchPrefer), "; mean: ",round(mean(data2fit_followup$DeltaFraudProb[!data2fit_followup$MapMatchPrefer]),2)," SD: ", round(sd(data2fit_followup$DeltaFraudProb[!data2fit_followup$MapMatchPrefer]),2), sep=""))
+loss_t = t.test(data2fit_followup$DeltaFraudProb[!data2fit_followup$MapMatchPrefer])
+print(paste("t-test fraud belief update loss scenario: t(df =", loss_t$parameter,  ") =", round(loss_t$statistic,2), ", p =", round(loss_t$p.value,4),  sep = " ")) 
+model_belief_update_loss = lm(DeltaFraudProb_z ~ 1 + FraudProb_z + PrefCand + PrefStrength_z + WinProb_z +  age_z + numericEndTime_z, data=data2fit_followup[!data2fit_followup$MapMatchPrefer,], na.action=na.omit)
+summary(model_belief_update_loss)
+# win
+print(paste("WIN scenario: N = ", sum(data2fit_followup$MapMatchPrefer), "; mean: ",round(mean(data2fit_followup$DeltaFraudProb[data2fit_followup$MapMatchPrefer]),2)," SD: ", round(sd(data2fit_followup$DeltaFraudProb[data2fit_followup$MapMatchPrefer]),2), sep=""))
+win_t = t.test(data2fit_followup$DeltaFraudProb[data2fit_followup$MapMatchPrefer])
+print(paste("t-test fraud belief update win scenario: t(df =", win_t$parameter,  ") =", round(win_t$statistic,2), ", p =", round(win_t$p.value,4),  sep = " ")) 
+model_belief_update_win = lm(DeltaFraudProb_z ~ 1 + FraudProb_z + PrefCand + PrefStrength_z + WinProb_z +  age_z + numericEndTime_z, data=data2fit_followup[data2fit_followup$MapMatchPrefer,], na.action=na.omit)
+summary(model_belief_update_win)
+
 ## visualize
 priorFraud_by_priorWin_preferred_scatter = ggplot(data2fit, aes(x=WinProb, y=FraudProb, color = PrefCand)) +
   geom_point(alpha = 0.3) +
@@ -425,9 +463,9 @@ fraudUpdate_by_priorFraud_win = ggplot() +
   ggtitle("Win: Empirical update")
 save(fraudUpdate_by_priorFraud_win, x_win, y_win, GP_reg_win, data_for_plot_win,  file="code/plots/fraudUpdate_by_priorFraud_win.rdata")
 
-##################################
-# additional plots for the paper #
-##################################
+####################
+# additional plots #
+####################
 
 ### bar plot - partisan direction desirability effect
 ## prepare data

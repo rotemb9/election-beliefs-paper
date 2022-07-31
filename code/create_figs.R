@@ -17,24 +17,26 @@ rm(list=ls())
 fig_output_path = "figures"
 
 ### MAIN FIGURES
-# Fig. 1: Fraud belief update given hypothetical election outcome maps
+# Fig. 1: Maps (not part of the code), and then fraud belief update given hypothetical election outcome maps
 load("code/plots/partisan_direction_desirability_effect_prepost.rdata")
 load("code/plots/fraudUpdateByPref.rdata")
 load("code/plots/fraudUpdateByPred.rdata")
 
+# this needs to be combined with the maps.
+# the panel labels therefore start from C
 fig1 = ggarrange(ggarrange(partisan_direction_desirability_effect_prepost),
                  ggarrange(fraudUpdateByPref, fraudUpdateByPred,
-                           labels = c("B", "C"),
+                           labels = c("D", "E"),
                            ncol = 1, nrow = 2,
                            common.legend = TRUE, legend = "bottom"),
-                 labels = c("A", ""),
+                 labels = c("C", ""),
                  ncol = 2, nrow = 1)
                  #ncol = 2, nrow = 1, widths = c(1,1.8))
 size_factor=0.5
 ggsave('fig1.pdf',
        plot = fig1,
        path = fig_output_path,
-       width = 350*size_factor,
+       width = 400*size_factor,
        height = 300*size_factor,
        units = "mm",
        dpi = 300)
@@ -83,7 +85,23 @@ ggsave('fig3.pdf',
 
 ### EXTENDED DATA FIGURES
 
-# Extended Data Fig. 1 - maps
+# Extended Data Fig. 1 - demographic distributions
+load("code/plots/preferred_by_affiliation_bar.rdata")
+load("code/plots/state_by_preferred_bar.rdata")
+load("code/plots/age_by_preferred_density.rdata")
+supp_fig1 = as_ggplot(grid.arrange(preferred_by_affiliation_bar,state_by_preferred_bar, age_by_preferred_density,
+                                    ncol = 2, nrow = 2,
+                                    layout_matrix = cbind(c(1,3), c(2,2)))) +
+  draw_plot_label(label = c("A", "B", "C"), size = 12,
+                  x = c(0, 0.5, 0), y = c(1, 1, 0.5))
+size_factor=0.75
+ggsave('supp_fig1.pdf',
+       plot = supp_fig1,
+       path = fig_output_path,
+       width = 364*size_factor,
+       height = 247*size_factor,
+       units = "mm",
+       dpi = 300)
 
 # Extended Data Fig. 2 - preference and prior belief data + bar plot categorical prefstrength
 load("code/plots/prefStrength_by_preferred_density.rdata")

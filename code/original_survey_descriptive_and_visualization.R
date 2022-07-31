@@ -80,6 +80,13 @@ state_by_preferred_bar = ggplot(state_dist, aes(fill=PrefCand, y=n, x=state)) +
   scale_y_continuous(breaks=seq(0,150,10))
 save(state_by_preferred_bar, file="code/plots/state_by_preferred_bar.rdata")
 
+# compare distribution of sample across states to population distribution based on the 2020 census
+participants_per_state = count(data2fit, state)
+census_2020 = read.csv(paste(input_path, "US_population_by_state_2020_census.csv",sep=""))
+participants_per_state = participants_per_state[!is.na(participants_per_state$state),]
+#data.frame(census_2020$state, participants_per_state$state)
+cor_num_across_states = cor.test(participants_per_state$n, census_2020$Size)
+
 ## age
 age_mean = round(mean(data2fit$age, na.rm=T), 1)
 age_sd = round(sd(data2fit$age, na.rm=T),1)
