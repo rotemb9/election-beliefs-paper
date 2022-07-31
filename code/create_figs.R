@@ -149,33 +149,49 @@ ggsave('supp_fig3.pdf',
        units = "mm",
        dpi = 300)
 
-# Extended Data Fig. 4 - heat maps for c and v and for pref by c and v
+# Extended Data Fig. 4 - simulations of predicted v update - Bayesian and OD
+load("code/plots/model_v_update.rdata")
+load("code/plots/OD_v_update_u055.rdata")
+load("code/plots/OD_v_update_u095.rdata")
+supp_fig4 = as_ggplot(grid.arrange(model_v_update, OD_v_update_u055, OD_v_update_u095, ncol = 2, layout_matrix=rbind(c(NA,1,1,NA), c(2,2,3,3))))
+
+
+size_factor = 0.75
+ggsave('supp_fig4.pdf',
+       plot = supp_fig4,
+       path = fig_output_path,
+       width = 250*size_factor,
+       height = 260*size_factor,
+       units = "mm",
+       dpi = 300)
+
+# Extended Data Fig. 5 - heat maps for c and v and for pref by c and v
 load("code/plots/heat_map_dems.rdata")
 load("code/plots/heat_map_reps.rdata")
 load("code/plots/heat_map_pref_dems.rdata")
 load("code/plots/heat_map_pref_reps.rdata")
 
-supp_fig4 = ggarrange(heat_map_dems, heat_map_reps,
+supp_fig5 = ggarrange(heat_map_dems, heat_map_reps,
                        heat_map_pref_dems, heat_map_pref_reps,
                        labels = c("A", "B", "C", "D"),
                        ncol = 2, nrow = 2)
 
-ggsave('supp_fig4.pdf',
-       plot = supp_fig4,
+ggsave('supp_fig5.pdf',
+       plot = supp_fig5,
        path = fig_output_path,
        width = 10,
        height = 8,
        units = "in",
        dpi = 300)
 
-# Extended Data Fig. 5 - model fit
+# Extended Data Fig. 6 - model fit
 load("code/plots/scatter_predicted_actual_f_update_models.rdata")
 
-supp_fig5 = scatter_predicted_actual_f_update_models
+supp_fig6 = scatter_predicted_actual_f_update_models
 
 size_factor=0.75
-ggsave('supp_fig5.pdf',
-       plot = supp_fig5,
+ggsave('supp_fig6.pdf',
+       plot = supp_fig6,
        path = fig_output_path,
        width = 180*size_factor,
        height = 150*size_factor,
@@ -183,36 +199,19 @@ ggsave('supp_fig5.pdf',
        dpi = 300)   
 
 
-# Extended Data Fig. 6 - predictions for fraud update as a function of prior win belief across models
+# Extended Data Fig. 7 - predictions for fraud update as a function of prior win belief across models
 load("code/plots/pred_fraudUpdateByPred_models.rdata")
 
-supp_fig6 = pred_fraudUpdateByPred_models
+supp_fig7 = pred_fraudUpdateByPred_models
 
 size_factor=0.75
-ggsave('supp_fig6.pdf',
-       plot = supp_fig6,
+ggsave('supp_fig7.pdf',
+       plot = supp_fig7,
        path = fig_output_path,
        width = 200*size_factor,
        height = 200*size_factor,
        units = "mm",
        dpi = 300)  
-
-# Extended Data Fig. 7 - simulations of predicted v update - Bayesian and OD
-load("code/plots/model_v_update.rdata")
-load("code/plots/OD_v_update_u055.rdata")
-load("code/plots/OD_v_update_u095.rdata")
-supp_fig7 = as_ggplot(grid.arrange(model_v_update, OD_v_update_u055, OD_v_update_u095, ncol = 2, layout_matrix=rbind(c(NA,1,1,NA), c(2,2,3,3))))
-
-
-size_factor = 0.75
-ggsave('supp_fig7.pdf',
-       plot = supp_fig7,
-       path = fig_output_path,
-       width = 250*size_factor,
-       height = 260*size_factor,
-       units = "mm",
-       dpi = 300)
-
 
 
 # Extended Data Fig. 8 - follow-up survey: fraud likelihood and benefitting candidate
