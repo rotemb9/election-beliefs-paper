@@ -34,15 +34,37 @@ combined_data = read.csv(filename)
 combined_data$FraudProbCatBiden = factor(combined_data$FraudProbCatBiden, levels = c("Extremely unlikely", "Unlikely", "Likely", "Extremely likely"), order = TRUE)
 combined_data$FraudProbCatTrump = factor(combined_data$FraudProbCatTrump, levels = c("Extremely unlikely", "Unlikely", "Likely", "Extremely likely"), order = TRUE)
 
+################################################
+#### TEST WHO PARTICIPATED IN THE FOLLOW-UP ####
+################################################
+# first, mark participants that were included in the N = 828 follow-up sample
+combined_data = filter(combined_data,!PrefCand=="Other")
+combined_data$completed_followup = !is.na(combined_data$PrefCand_present)
+combined_data$excluded_followup = !is.na(combined_data$PrefCand_present) & (combined_data$PrefCand_present=="Other" | combined_data$PrefCand!=combined_data$PrefCand_present)
+combined_data$no_followup = is.na(combined_data$PrefCand_present)
+combined_data$followup = !combined_data$no_followup & !combined_data$excluded_followup
+
+# can completion of the follow up survey be predicted from the original survey characteristics?
+pred_followup = glm(followup ~ 1 + PrefCand + PrefStrength + FraudProb + age.x, data=filter(combined_data,!combined_data$excluded_followup), na.action=na.omit, family=binomial)
+summary(pred_followup)
+print(paste("The follow-up sample includes ", sum(combined_data$followup), " participants", sep = ""))
+print(paste("Of which ", round(sum(combined_data$followup & combined_data$PrefCand=="Rep") / sum(combined_data$followup) * 100,1), "% are Republicans", sep = ""))
+print(paste("Compared to ", round(sum(!combined_data$completed_followup & combined_data$PrefCand=="Rep") / sum(!combined_data$completed_followup) * 100,1) , "% of participants who did not complete the follow-up survey", sep = ""))
+print(paste("Of ", sum(combined_data$PrefCand=="Rep"), " Republicans who completed the original survey, ", sum(combined_data$followup & combined_data$PrefCand=="Rep")," completed the follow-up survey", sep = ""))
+print(paste("Of ", sum(combined_data$PrefCand=="Dem"), " Democrats who completed the original survey, ", sum(combined_data$followup & combined_data$PrefCand=="Dem")," completed the follow-up survey", sep = ""))
+
+print(paste("Mean age of participants included in the follow-up survey is ", round(mean(combined_data$age.x[combined_data$followup], na.rm = T),1), sep = ""))
+print(paste("Mean age of participants who did not complete the follow-up survey is ", round(mean(combined_data$age.x[!combined_data$completed_followup], na.rm = T),1), sep = ""))
+
+#################################
+#### FOLLOW-UP DATA ANALYSES ####
+#################################
+
 ## keep only participants with data from both surveys
 combined_data = filter(combined_data, !is.na(combined_data$PrefCand_present))
 
 ## df with only follow-up data
 followup_survey_data = select(combined_data, -c(T_start:state.x))
-
-#################################
-#### FOLLOW-UP DATA ANALYSES ####
-#################################
 #### Fraud beliefs across surveys
 # correlate posterior fraud beliefs from the original survey (when map=Biden) with fraud beliefs in favor of Biden in the follow-up survey
 # include only participants with consistent preferences across the surveys who did not prefer "Other"

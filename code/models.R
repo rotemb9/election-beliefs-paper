@@ -77,7 +77,7 @@ heat_map_desirability_effect = ggplot(data=model_df_posterior[model_df_posterior
   scale_y_reverse(breaks = seq(0, 1, by = seq_by), expand = c(0, 0)) +
   scale_x_continuous(breaks = seq(0, 1, by = seq_by), expand = c(0, 0)) +
   theme(text = element_text(size = 12), panel.grid.major.x = element_blank(), panel.background = element_rect(fill = "white"), panel.grid.major = element_blank(), panel.grid.minor = element_line(colour = "gray")) +
-  scale_fill_gradient2(paste("Desirability\neffect\n(f=", f_value, ")", sep=""), high = "darkorange", mid = "#f7f7f7", low = "purple")
+  scale_fill_gradient2(paste("Posterior fraud belief\nloss minus win\n(f=", f_value, ")", sep=""), high = "darkorange", mid = "#f7f7f7", low = "purple")
 save(heat_map_desirability_effect, model_df_posterior, file="code/plots/heat_map_desirability_effect.rdata")
 
 # visualize - fraud update, both scenarios
@@ -134,6 +134,9 @@ save(model_v_update, data_for_model_v_update, file="code/plots/model_v_update.rd
 input_path="data/"
 filename = paste(input_path, "combined_survey_data_for_analysis_after_exclusion.csv",sep="")
 data2fit = read.csv(filename)
+data2fit$PrefCand = as.factor(data2fit$PrefCand)
+data2fit$PrefCand_present = as.factor(data2fit$PrefCand_present)
+data2fit$PrefCand_election_day = as.factor(data2fit$PrefCand_election_day)
 
 ## exclude participants
 warning(paste("Out of", nrow(data2fit), "observations:"))
@@ -179,6 +182,73 @@ data2fit$FraudProb_scaled_for_model = fvc$FraudProb_scaled
 data2fit$pred_v_for_model = fvc$pred_v
 data2fit$pred_c_for_model = fvc$pred_c
 
+## shrink prior beliefs to test expressive responding implications?
+shrink_priors = FALSE # TRUE or FALSE
+## also shrink fraud beliefs?
+shrink_f = 0 # 0 = no; 1 = yes; 2 = only for Republicans (assuming expressive responding would result higher fraud beliefs for Republicans, but not necessarily for Democrats)
+plot_dir = "code/plots/"
+if (shrink_priors) {
+  # shrink priors (assuming expressive responding)
+  shrinkage_factor = 0.1
+  # save plots and results to a "shrinked_priors" folder to clearly separate results
+  plot_dir = "code/plots/shrinked_priors/"
+  warning(paste("shrinking prior v and c by ", shrinkage_factor, sep = ""))
+  warning(paste("saving plots in "), plot_dir, sep = "")
+  data2fit$regularized_v = fvc$pred_v
+  data2fit$regularized_c = fvc$pred_c
+  data2fit$pred_v_for_model = data2fit$pred_v_for_model * (1 - shrinkage_factor)
+  data2fit$pred_c_for_model = data2fit$pred_c_for_model * (1 - shrinkage_factor) + shrinkage_factor
+  data2fit$pred_c_for_model[data2fit$pred_c_for_model > (1-regularization_value)] =1-regularization_value
+  data2fit$shrinked_v = data2fit$pred_v_for_model
+  data2fit$shrinked_c = data2fit$pred_c_for_model
+  # plot prior shrinkage
+  shrinkage_v = ggplot(data = data2fit, aes(x = shrinked_v, y = regularized_v)) +
+    geom_point(alpha = 0.1) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed")
+  
+  shrinkgae_c = ggplot(data = data2fit, aes(x = shrinked_c, y = regularized_c)) +
+    geom_point(alpha = 0.1) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed")
+  
+  if (shrink_f) {
+    plot_dir = "code/plots/shrinked_beliefs/"
+    # prior
+    data2fit$regularized_f = fvc$FraudProb_scaled
+    if (shrink_f == 1) {
+      warning(paste("also shrinking prior and posterior f by ", shrinkage_factor, sep = ""))
+      data2fit$FraudProb_scaled_for_model = data2fit$FraudProb_scaled_for_model * (1 - shrinkage_factor)
+    } else {
+      warning(paste("also shrinking prior and posterior f by ", shrinkage_factor, " only for Republican participants", sep = ""))
+      data2fit$FraudProb_scaled_for_model[data2fit$PrefCand=="Rep"] = data2fit$FraudProb_scaled_for_model[data2fit$PrefCand=="Rep"] * (1 - shrinkage_factor)
+    }
+    data2fit$shrinked_f = data2fit$FraudProb_scaled_for_model
+    
+    # plot prior shrinkage
+    shrinkage_f = ggplot(data = data2fit, aes(x = shrinked_f, y = regularized_f)) +
+      geom_point(aes(color = PrefCand), alpha = 0.1) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+      scale_color_manual("Preferred\ncandidate", values = c("blue3", "red3")) +
+      guides(color = guide_legend(override.aes = list(alpha = 1)))
+    
+    # posterior
+    data2fit$reported_posterior = data2fit$FraudProbMap_scaled
+    if (shrink_f == 1) {
+      data2fit$FraudProbMap_scaled = data2fit$FraudProbMap_scaled * (1 - shrinkage_factor)
+    } else {
+      data2fit$FraudProbMap_scaled[data2fit$PrefCand=="Rep"] = data2fit$FraudProbMap_scaled[data2fit$PrefCand=="Rep"] * (1 - shrinkage_factor)
+    }
+    data2fit$shrinked_posterior = data2fit$FraudProbMap_scaled
+    
+    # plot posterior shrinkage
+    shrinkage_posterior = ggplot(data = data2fit, aes(x = shrinked_posterior, y = reported_posterior)) +
+      geom_point(aes(color = PrefCand), alpha = 0.1) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+      scale_color_manual("Preferred\ncandidate", values = c("blue3", "red3")) +
+      guides(color = guide_legend(override.aes = list(alpha = 1)))
+    
+  }
+}
+
 ## Main Bayesian Model
 # loss scenario
 data2fit$pred_posterior_f[!data2fit$MapMatchPrefer] = bayes_model(0,data2fit$FraudProb_scaled_for_model[!data2fit$MapMatchPrefer],data2fit$pred_v_for_model[!data2fit$MapMatchPrefer],data2fit$pred_c_for_model[!data2fit$MapMatchPrefer])
@@ -206,10 +276,10 @@ heat_map_desirability_effect_dots = ggplot() +
   scale_y_reverse("True vote (v)", breaks = seq(0, 1, by = seq_by), expand = c(0, 0)) +
   scale_x_continuous("Fraud beneficiary (c)", breaks = seq(0, 1, by = seq_by), expand = c(0, 0)) +
   theme(text = element_text(size = 10), panel.grid.major.x = element_blank(), panel.background = element_rect(fill = "white"), panel.grid.major = element_blank(), panel.grid.minor = element_line(colour = "gray"), axis.ticks.x = element_blank(), axis.ticks.y = element_blank()) +
-  scale_fill_gradient2(paste("Desirability\neffect\n(f=", f_value, ")", sep=""), high = "#7fbf7b", mid = "#f7f7f7", low = "#fec44f") +
+  scale_fill_gradient2(paste("Posterior fraud belief\nloss minus win\n(f=", f_value, ")", sep=""), high = "#7fbf7b", mid = "#f7f7f7", low = "#fec44f") +
   scale_color_manual("Preferred\ncandidate", values = c("blue3", "red3")) +
   guides(color = guide_legend(override.aes = list(alpha = 1, size = 1.5)))
-save(heat_map_desirability_effect_dots,data_for_heat_map_desirability_effect_dots,data2fit, file="code/plots/heat_map_desirability_effect_dots.rdata")
+save(heat_map_desirability_effect_dots,data_for_heat_map_desirability_effect_dots,data2fit, file=paste(plot_dir, "heat_map_desirability_effect_dots.rdata", sep=""))
 
 ### participants from each party on the c,v prior space
 # heat map- participants' proportions in each combination
@@ -239,7 +309,7 @@ heat_map_dems = ggplot(data=per_v_c_party[per_v_c_party$prefCand=="Dem",],aes(x=
   scale_fill_gradient("Proportion\n", low="white", high="blue", limits = c(min(per_v_c_party$Proportion), max(per_v_c_party$Proportion))) +
   geom_vline(xintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey") +
   geom_hline(yintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey")
-save(heat_map_dems, per_v_c_party, file="code/plots/heat_map_dems.rdata")
+save(heat_map_dems, per_v_c_party, file=paste(plot_dir, "heat_map_dems.rdata", sep=""))
 
 # Reps
 heat_map_reps = ggplot(data=per_v_c_party[per_v_c_party$prefCand=="Rep",],aes(x=c, y=v, fill = Proportion)) +
@@ -251,7 +321,7 @@ heat_map_reps = ggplot(data=per_v_c_party[per_v_c_party$prefCand=="Rep",],aes(x=
   scale_fill_gradient("Proportion\n", low="white", high="red", limits = c(min(per_v_c_party$Proportion), max(per_v_c_party$Proportion))) +
   geom_vline(xintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey") +
   geom_hline(yintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey")
-save(heat_map_reps, per_v_c_party, file="code/plots/heat_map_reps.rdata")
+save(heat_map_reps, per_v_c_party, file=paste(plot_dir, "heat_map_reps.rdata", sep=""))
 
 # create heat map of averaged preferences- only where there are at least 1% of participants
 pref_v_c_party = aggregate(data2fit$PrefStrength_present[data2fit$PrefCand_present!="Other"],
@@ -274,7 +344,7 @@ heat_map_pref_dems = ggplot(data=pref_v_c_party[pref_v_c_party$prefCand=="Dem",]
   scale_fill_gradient2("Mean\npreference\n", low="white", mid = "white", midpoint = min(pref_v_c_party$x, na.rm = TRUE)-5, high="blue", na.value = "white", limits = c(min(pref_v_c_party$x, na.rm = TRUE), 100)) +
   geom_vline(xintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey") +
   geom_hline(yintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey")
-save(heat_map_pref_dems, pref_v_c_party, file="code/plots/heat_map_pref_dems.rdata")
+save(heat_map_pref_dems, pref_v_c_party, file=paste(plot_dir, "heat_map_pref_dems.rdata", sep=""))
 
 # reps
 heat_map_pref_reps = ggplot(data=pref_v_c_party[pref_v_c_party$prefCand=="Rep",],aes(x=c, y=v, fill = x)) +
@@ -286,7 +356,7 @@ heat_map_pref_reps = ggplot(data=pref_v_c_party[pref_v_c_party$prefCand=="Rep",]
   scale_fill_gradient2("Mean\npreference\n", low="white", mid = "white", midpoint = min(pref_v_c_party$x, na.rm = TRUE)-5,high="red", na.value = "white", limits = c(min(pref_v_c_party$x, na.rm = TRUE), 100)) +
   geom_vline(xintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey") +
   geom_hline(yintercept=seq(seq_by/2, 1-seq_by/2, by=seq_by), color = "grey")
-save(heat_map_pref_reps, pref_v_c_party, file="code/plots/heat_map_pref_reps.rdata")
+save(heat_map_pref_reps, pref_v_c_party, file=paste(plot_dir, "heat_map_pref_reps.rdata", sep=""))
 
 ### correlations between preference strength from the original survey, and c and v from the follow-up survey
 ## with v
@@ -323,7 +393,7 @@ true_winner_plot = ggplot(data_biased_priors_plot, aes(x=true_winner_trump*100, 
   labs(x = "True votes", fill = "Preferred\ncandidate") +
   scale_x_continuous(breaks = c(0,50,100),labels = labels.minor) +
   theme(text = element_text(size = 9))
-save(true_winner_plot, data_biased_priors_plot, file="code/plots/true_winner_plot.rdata")
+save(true_winner_plot, data_biased_priors_plot, file=paste(plot_dir, "true_winner_plot.rdata", sep=""))
 
 # plot fraud beneficiary curves
 breaks.minor <- c(0,100)
@@ -336,13 +406,13 @@ fraud_beneficiary_plot = ggplot(data_biased_priors_plot, aes(x=Fraudbenefitrump,
   labs(x = "Fraud beneficiary", fill = "Preferred\ncandidate") +
   scale_x_continuous(breaks = c(0,50,100),labels = labels.minor) +
   theme(text = element_text(size = 9))
-save(fraud_beneficiary_plot, data_biased_priors_plot, file="code/plots/fraud_beneficiary_plot.rdata")
+save(fraud_beneficiary_plot, data_biased_priors_plot, file=paste(plot_dir, "fraud_beneficiary_plot.rdata", sep=""))
 
 biased_priors_plot = ggarrange(true_winner_plot, fraud_beneficiary_plot,
                                labels = c("B", "C"),
                                ncol = 1, nrow = 2,
                                common.legend = TRUE, legend = "right")
-save(biased_priors_plot, data_biased_priors_plot, file="code/plots/biased_priors_plot.rdata")
+save(biased_priors_plot, data_biased_priors_plot, file=paste(plot_dir, "biased_priors_plot.rdata", sep=""))
 
 ### Fraud-only model
 fraudonly_model = function(w,f,c) {
@@ -369,7 +439,7 @@ fraudonly_fraud_update = ggplot(data_for_fraudonly_fraud_update) +
   theme(text = element_text(size = 9), legend.position = "bottom") +
   facet_wrap(~c, labeller = labeller(c = label_both)) +
   ggtitle("Fraud-Only")
-save(fraudonly_fraud_update,data_for_fraudonly_fraud_update,file="code/plots/fraudonly_fraud_update.rdata")
+save(fraudonly_fraud_update,data_for_fraudonly_fraud_update,file=paste(plot_dir, "fraudonly_fraud_update.rdata", sep=""))
 
 ### Random beneficiary model
 randombeneficiary_model = function(w,f,v) {
@@ -396,8 +466,7 @@ randombeneficiary_fraud_update = ggplot(data_for_randombeneficiary_fraud_update)
   theme(text = element_text(size = 9), legend.position = "bottom") +
   facet_wrap(~v, labeller = labeller(v = label_both)) +
   ggtitle("Random Beneficiary")
-save(randombeneficiary_fraud_update,data_for_randombeneficiary_fraud_update,file="code/plots/randombeneficiary_fraud_update.rdata")
-
+save(randombeneficiary_fraud_update,data_for_randombeneficiary_fraud_update,file=paste(plot_dir, "randombeneficiary_fraud_update.rdata", sep=""))
 
 ### Non-Bayesian model deviations: Hypothesis Desirability and Outcome Desirability
 ## Hypothesis Desirability (a is the free parameter alpha)
@@ -545,7 +614,7 @@ OD_fraud_update_u055 = ggplot(data_for_OD_fraud_update_u055) +
   theme(text = element_text(size = 10), legend.position = "bottom") +
   facet_grid(v ~ c, labeller = labeller(v = label_both, c = label_both)) +
   ggtitle("Outcome Desirability model, u = 0.55")
-save(OD_fraud_update_u055,data_for_OD_fraud_update_u055,file="code/plots/OD_fraud_update_u055.rdata")
+save(OD_fraud_update_u055,data_for_OD_fraud_update_u055,file=paste(plot_dir, "OD_fraud_update_u055.rdata", sep=""))
 
 data_for_OD_fraud_update_u095 = model_df[model_df$c %in% round(seq(0,1,0.2),1) & model_df$v %in% round(seq(0,1,0.2),1) & model_df$u == 0.95,]
 OD_fraud_update_u095 = ggplot(data_for_OD_fraud_update_u095) +
@@ -558,7 +627,7 @@ OD_fraud_update_u095 = ggplot(data_for_OD_fraud_update_u095) +
   theme(text = element_text(size = 9), legend.position = "bottom") +
   facet_grid(v ~ c, labeller = labeller(v = label_both, c = label_both)) +
   ggtitle("Outcome Desirability, u = 0.95")
-save(OD_fraud_update_u095,data_for_OD_fraud_update_u095,file="code/plots/OD_fraud_update_u095.rdata")
+save(OD_fraud_update_u095,data_for_OD_fraud_update_u095,file=paste(plot_dir, "OD_fraud_update_u095.rdata", sep=""))
 
 ### model comparison
 ## organize priors and model predictions across models
@@ -675,8 +744,22 @@ ss_diff = Base_ss - OD_ss
 df_diff = 1 # number of additional free parameters for the bigger (OD) model
 ms_diff = ss_diff / df_diff
 
-F = ms_diff / ms_res
-ftest_pval = pf(F, df_diff, OD_res_df, lower.tail = FALSE)
+F_OD = ms_diff / ms_res
+ftest_pval_OD = pf(F_OD, df_diff, OD_res_df, lower.tail = FALSE)
+
+# F test comparing the Base model and the HD model
+HD_ss = model_comparison_table$SSE_all[model_comparison_table$model == "hypodesire"]
+HD_df = 1
+HD_res_df = model_comparison_table$N_all[model_comparison_table$model == "hypodesire"] - HD_df
+ms_res = HD_ss / HD_res_df
+Base_ss = model_comparison_table$SSE_all[model_comparison_table$model == "bayes"]
+ss_diff = Base_ss - HD_ss
+df_diff = 1 # number of additional free parameters for the bigger (HD) model
+ms_diff = ss_diff / df_diff
+
+F_HD = ms_diff / ms_res
+ftest_pval_HD = pf(F_HD, df_diff, HD_res_df, lower.tail = FALSE)
+
 
 ## compare the fit of the Bayesian model between the win and loss scenarios
 library(psych)
@@ -687,6 +770,34 @@ N_win = model_comparison_table$N_win[model_comparison_table$model=="bayes"]
 r_comparison_bayes_win_loss = paired.r(cor_empirical_predicted_loss, cor_empirical_predicted_win, NULL, N_loss, N_win)
 detach("package:psych") 
 
+## statistically test desirability effects in the predictions of the Bayesian model
+# orgnize and z -score variables
+data2fit$numericEndTime = as.numeric(data2fit$T_end)
+data2fit$PrefStrength_z = scale(data2fit$PrefStrength, center = TRUE, scale=TRUE)
+data2fit$WinProb_z = scale(data2fit$WinProb, center = TRUE, scale=TRUE)
+data2fit$FraudProb_z = scale(data2fit$FraudProb, center = TRUE, scale=TRUE)
+data2fit$pred_fraud_update_z = scale(data2fit$pred_fraud_update, center = TRUE, scale=TRUE)
+data2fit$age_z = scale(data2fit$age, center = TRUE, scale=TRUE)
+data2fit$numericEndTime_z = scale(data2fit$numericEndTime, center = TRUE, scale=TRUE)
+data2fit$PrefCand = as.factor(data2fit$PrefCand)
+contrasts(data2fit$PrefCand) = contr.sum(2)
+
+# test fraud belief updating
+data2fit$pred_fraud_update_unscaled = data2fit$pred_fraud_update*100
+#print("Predicted fraud belief update")
+# loss
+#print(paste("LOSS scenario: N = ", sum(!data2fit$MapMatchPrefer), "; mean: ",round(mean(data2fit$pred_fraud_update_unscaled[!data2fit$MapMatchPrefer]),2)," SD: ", round(sd(data2fit$pred_fraud_update_unscaled[!data2fit$MapMatchPrefer]),2), sep=""))
+loss_t = t.test(data2fit$pred_fraud_update_unscaled[!data2fit$MapMatchPrefer])
+#print(paste("t-test fraud belief update loss scenario: t(df =", loss_t$parameter,  ") =", round(loss_t$statistic,2), ", p =", round(loss_t$p.value,4),  sep = " ")) 
+model_belief_update_loss = lm(pred_fraud_update_unscaled ~ 1 + FraudProb + PrefCand + PrefStrength + WinProb +  age.x, data=data2fit[!data2fit$MapMatchPrefer,], na.action=na.omit)
+#summary(model_belief_update_loss)
+# win
+#print(paste("WIN scenario: N = ", sum(data2fit$MapMatchPrefer), "; mean: ",round(mean(data2fit$pred_fraud_update_unscaled[data2fit$MapMatchPrefer]),2)," SD: ", round(sd(data2fit$pred_fraud_update_unscaled[data2fit$MapMatchPrefer]),2), sep=""))
+win_t = t.test(data2fit$pred_fraud_update_unscaled[data2fit$MapMatchPrefer])
+#print(paste("t-test fraud belief update win scenario: t(df =", win_t$parameter,  ") =", round(win_t$statistic,2), ", p =", round(win_t$p.value,4),  sep = " ")) 
+model_belief_update_win = lm(pred_fraud_update_unscaled ~ 1 + FraudProb + PrefCand + PrefStrength + WinProb +  age.x, data=data2fit[data2fit$MapMatchPrefer,], na.action=na.omit)
+#summary(model_belief_update_win)
+  
 ## Compare the patterns of predictions across the models
 # choose models to plot
 models_for_plots = c("bayes","outcomedesire","fraudonly","randombeneficiary")
@@ -718,7 +829,7 @@ scatter_predicted_actual_f_update_models = ggplot(data = models_comparison_long_
   scale_x_continuous("Predicted fraud belief update", breaks = seq(-1,1,0.2), limits = c(-1,1)) +
   theme(legend.position = "bottom", text = element_text(size = 9), panel.background = element_rect(fill = "white")) +
   facet_wrap(~ model, nrow = 2)
-save(models_comparison_long_for_plot, scatter_predicted_actual_f_update_models, file="code/plots/scatter_predicted_actual_f_update_models.rdata")
+save(models_comparison_long_for_plot, scatter_predicted_actual_f_update_models, file=paste(plot_dir, "scatter_predicted_actual_f_update_models.rdata", sep=""))
 
 ## reproduce the empirical findings with the predicted values based on the model
 pred_fraudUpdateByPref_models = ggplot(models_comparison_long_for_plot, aes(x = PrefStrength, y = fraud_update, color = w)) +
@@ -735,7 +846,29 @@ pred_fraudUpdateByPref_models = ggplot(models_comparison_long_for_plot, aes(x = 
   guides(linetype = guide_legend(override.aes = list(size = 0.5))) +
   theme(text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white")) +
   facet_wrap(~ model, nrow = 2)
-save(models_comparison_long_for_plot, pred_fraudUpdateByPref_models, file="code/plots/pred_fraudUpdateByPref_models.rdata")
+save(models_comparison_long_for_plot, pred_fraudUpdateByPref_models, file=paste(plot_dir, "pred_fraudUpdateByPref_models.rdata", sep=""))
+
+# the above for the Bayesian model only
+if (shrink_priors) {
+  title_for_plot = "Transformed priors"
+} else {
+  title_for_plot = "Reported priors"
+}
+pred_fraudUpdateByPref_bayesian = ggplot(models_comparison_long_for_plot[models_comparison_long_for_plot$model == "Original Bayesian",], aes(x = PrefStrength, y = fraud_update, color = w)) +
+  geom_hline(aes(yintercept = 0), color = "black") +
+  geom_smooth(method = "lm", alpha = 0.6, linetype = 0) +
+  geom_line(stat="smooth",method = "lm", size = 1, aes(linetype = "longdash")) +
+  geom_point(alpha = 0.1, shape = 20) +
+  geom_line(aes(x = PrefStrength, y = empirical_fraud_update, linetype = "solid"), method = "lm", alpha=0.6, stat="smooth", size=1) +
+  scale_y_continuous(breaks=seq(-1,1,0.2), limits = c(-1,1), labels = seq(-100, 100, 20)) +
+  scale_x_continuous(breaks=seq(0,100,10)) +
+  scale_color_manual(values = c("#4dac26", "#d01c8b"), labels = c("Undesired (loss)", "Desired (win)")) +
+  scale_linetype_manual(values = c(2, 1), labels = c("Model", "Data")) +
+  labs(x = "Preference strength", y = "Predicted fraud belief update\n(after - before)", color = "Outcome", linetype = "") +
+  guides(linetype = guide_legend(override.aes = list(size = 0.5))) +
+  ggtitle(title_for_plot) +
+  theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white"))
+save(models_comparison_long_for_plot, pred_fraudUpdateByPref_bayesian, file=paste(plot_dir, "pred_fraudUpdateByPref_bayesian.rdata", sep=""))
 
 pred_fraudUpdateByPred_models = ggplot(models_comparison_long_for_plot, aes(x = WinProb, y = fraud_update, color = w)) +
   geom_hline(aes(yintercept = 0), color = "black") +
@@ -751,11 +884,60 @@ pred_fraudUpdateByPred_models = ggplot(models_comparison_long_for_plot, aes(x = 
   guides(linetype = guide_legend(override.aes = list(size = 0.5))) +
   theme(text = element_text(size = 9), legend.position = "bottom", panel.background = element_rect(fill = "white")) +
   facet_wrap(~ model, nrow = 2)
-save(models_comparison_long_for_plot, pred_fraudUpdateByPred_models, file="code/plots/pred_fraudUpdateByPred_models.rdata")
+save(models_comparison_long_for_plot, pred_fraudUpdateByPred_models, file=paste(plot_dir, "pred_fraudUpdateByPred_models.rdata", sep=""))
+
+## prior and posterior fraud belief by map
+models_comparison_long_for_plot$Map = "Dem"
+models_comparison_long_for_plot$Map[models_comparison_long_for_plot$w==1 & models_comparison_long_for_plot$PrefCand=="Rep"] = "Rep"
+models_comparison_long_for_plot$Map[models_comparison_long_for_plot$w==0 & models_comparison_long_for_plot$PrefCand=="Dem"] = "Rep"
+prepost_data = select(models_comparison_long_for_plot,"PrefCand", "Map", "f_original","posterior_f", "model")
+# rescale to 0 - 100 to reproduce figures
+prepost_data$f_original = prepost_data$f_original * 100
+prepost_data$posterior_f = prepost_data$posterior_f * 100
+prepost_data = gather(prepost_data, FraudTimePoint, FraudJudgement, f_original:posterior_f,factor_key = FALSE)
+prepost_data$FraudTimePoint[prepost_data$FraudTimePoint == "f_original"] = "Prior"
+prepost_data$FraudTimePoint[prepost_data$FraudTimePoint == "posterior_f"] = "Posterior"
+prepost_data$FraudTimePoint = factor(prepost_data$FraudTimePoint, levels = c("Prior", "Posterior"))
+#prepost_data$participant_num = as.factor(prepost_data$participant_num)
+prepost_data_sum = aggregate(prepost_data$FraudJudgement,list(TimePoint = prepost_data$FraudTimePoint, PrefCand = prepost_data$PrefCand, Map = prepost_data$Map, model = prepost_data$model), function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
+prepost_data_sum = cbind(prepost_data_sum[,1:4], as.data.frame(prepost_data_sum$x))
+levels(prepost_data_sum$PrefCand) <- list(Democrats  = "Dem", Republicans = "Rep")
+levels(prepost_data_sum$Map) <- list(Biden  = "Dem", Trump = "Rep")
+levels(prepost_data_sum$TimePoint) <- list(Prior  = "Before", Posterior = "After")
+prepost_data_sum$SEM = prepost_data_sum$sd/sqrt(prepost_data_sum$n)
+#data_for_points = select(prepost_data, c(FraudTimePoint, FraudJudgement, Map, PrefCand, participant_num))
+data_for_points = select(prepost_data, c(FraudTimePoint, FraudJudgement, Map, PrefCand, model))
+levels(data_for_points$PrefCand) <- list(Democrats  = "Dem", Republicans = "Rep")
+levels(data_for_points$Map) <- list(Biden  = "Dem", Trump = "Rep")
+levels(data_for_points$FraudTimePoint) <- list(Prior  = "Before", Posterior = "After")
+map_labels = c(Dem = "Biden wins", Rep = "Trump wins")
+prepost_data_sum$PrefCand[prepost_data_sum$PrefCand == "Dem"] = "Democrats"
+prepost_data_sum$PrefCand[prepost_data_sum$PrefCand == "Rep"] = "Republicans"
+data_for_points$PrefCand[data_for_points$PrefCand == "Dem"] = "Democrats"
+data_for_points$PrefCand[data_for_points$PrefCand == "Rep"] = "Republicans"
+
+#cur_model = "Original Bayesian" # "Original Bayesian" / "Outcome Desirability" / "Fraud-Only" / "Random Beneficiary"
+partisan_direction_desirability_effect_prepost_models = vector('list', length(models_for_plots))
+for (model_ind in 1:length(models_for_plots)) {
+  cur_model = models_for_plots[model_ind]
+  cur_model_label = models_labels_for_plots[model_ind]
+  partisan_direction_desirability_effect_prepost_models[[model_ind]] = ggplot(data=prepost_data_sum[prepost_data_sum$model == cur_model_label,], aes(x=TimePoint, y=mean, fill = PrefCand)) +
+    geom_bar(width=1,colour="black",position=position_dodge(1), stat="identity", alpha=0.15) + # Bar plot
+    geom_errorbar(position=position_dodge(0.8), width=1/8, aes(ymin=mean-SEM, ymax=mean+SEM))  + # add error bar of SEM
+    geom_point(data=data_for_points[data_for_points$model == cur_model_label,], aes(y = FraudJudgement, x = FraudTimePoint, color = PrefCand), position=position_jitterdodge(jitter.width = 0.7, dodge.width = 0.8), alpha=0.2, size = 0.8)+
+    scale_x_discrete(name = "Time point and scenario") +
+    scale_y_continuous("Fraud belief",breaks=seq(0, 100, 10), limits = c(0, 100)) +
+    scale_fill_manual("Preferred candidate", values=c("blue4","red4")) + # color of bars
+    scale_color_manual("Preferred candidate", values=c("blue4","red4")) + # color of dots
+    theme(text = element_text(size = 10), plot.title = element_text(hjust = 0.5), legend.position="bottom", panel.grid.major.x = element_blank(), panel.background = element_rect(fill = "white"), panel.grid.major = element_line(colour = "gray"), panel.grid.minor = element_blank(), strip.placement = "outside", strip.background = element_rect(fill = "white")) +
+    ggtitle(cur_model_label) +
+    facet_grid(PrefCand~Map, switch = "x", labeller = labeller(Map = map_labels))
+}
+save(partisan_direction_desirability_effect_prepost_models, prepost_data_sum, data_for_points, file=paste(plot_dir, "partisan_direction_desirability_effect_prepost_models.rdata", sep=""))
 
 ## compare plots for fraud belief update as a function of prior fraud belief
 if (load_gp_reg) {
-  load("code/plots/GP_reg_pred_models.rdata")
+  load(paste(plot_dir, "GP_reg_pred_models.rdata", sep = ""))
 } else {
   GP_reg_pred_models = data.frame(w = data2fit$MapMatchPrefer, f = data2fit$FraudProb_scaled_for_model, f_original = data2fit$FraudProb_scaled)
   for (model_ind in 1:length(model_names)) {
@@ -769,7 +951,7 @@ if (load_gp_reg) {
     model_gaupro_win = GauPro(GP_reg_pred_models$f[GP_reg_pred_models$w], cur_model_pred_fraud_update[GP_reg_pred_models$w], parallel=TRUE)
     GP_reg_pred_models[GP_reg_pred_models$w,cur_model] = model_gaupro_win$predict(GP_reg_pred_models$f[GP_reg_pred_models$w])
   }
-  save(GP_reg_pred_models, file = "code/plots/GP_reg_pred_models.rdata")
+  save(GP_reg_pred_models, file=paste(plot_dir, "GP_reg_pred_models.rdata", sep=""))
 }
 GP_reg_pred_models_long = gather(GP_reg_pred_models, model, GP_pred_update, model_names[1]:model_names[length(model_names)],factor_key=TRUE)
 GP_reg_pred_models_long$pred_update = models_comparison_long$fraud_update
@@ -842,7 +1024,7 @@ OD_v_update_u055 = ggplot(data_for_OD_v_update_u055) +
   theme(text = element_text(size = 10), legend.position = "none") +
   facet_grid(f ~ c, labeller = labeller(f = label_both, c = label_both)) +
   ggtitle("Outcome Desirability, u = 0.55")
-save(OD_v_update_u055, data_for_OD_v_update_u055, file="code/plots/OD_v_update_u055.rdata")
+save(OD_v_update_u055, data_for_OD_v_update_u055, file=paste(plot_dir, "OD_v_update_u055.rdata", sep=""))
 
 data_for_OD_v_update_u095 = model_df[model_df$c %in% round(seq(0,1,0.2),1) & model_df$f %in% round(seq(0,1,0.2),1) & model_df$u == 0.95,]
 OD_v_update_u095 = ggplot(data_for_OD_v_update_u095) +
@@ -855,7 +1037,7 @@ OD_v_update_u095 = ggplot(data_for_OD_v_update_u095) +
   theme(text = element_text(size = 10), legend.position = "none") +
   facet_grid(f ~ c, labeller = labeller(f = label_both, c = label_both)) +
   ggtitle("Outcome Desirability, u = 0.95")
-save(OD_v_update_u095, data_for_OD_v_update_u095, file="code/plots/OD_v_update_u095.rdata")
+save(OD_v_update_u095, data_for_OD_v_update_u095, file=paste(plot_dir, "OD_v_update_u095.rdata", sep=""))
 
 
 ### "election-proof" participants
@@ -926,4 +1108,4 @@ intervention_comparison_plot = ggplot(data = intervention_df_long, aes(x = inter
   geom_point() +
   scale_x_continuous(breaks = seq(0,1,0.1)) +
   labs(x = "inetervention efficacy", y = "mean posterior fraud belief", color = "intervention")
-save(intervention_comparison_plot, intervention_df_long, file="code/plots/intervention_comparison_plot")
+save(intervention_comparison_plot, intervention_df_long, file=paste(plot_dir, "intervention_comparison_plot.rdata", sep=""))

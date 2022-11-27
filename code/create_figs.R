@@ -89,14 +89,14 @@ ggsave('fig3.pdf',
 load("code/plots/preferred_by_affiliation_bar.rdata")
 load("code/plots/state_by_preferred_bar.rdata")
 load("code/plots/age_by_preferred_density.rdata")
-supp_fig1 = as_ggplot(grid.arrange(preferred_by_affiliation_bar,state_by_preferred_bar, age_by_preferred_density,
+extended_data_fig1 = as_ggplot(grid.arrange(preferred_by_affiliation_bar,state_by_preferred_bar, age_by_preferred_density,
                                     ncol = 2, nrow = 2,
                                     layout_matrix = cbind(c(1,3), c(2,2)))) +
   draw_plot_label(label = c("A", "B", "C"), size = 12,
                   x = c(0, 0.5, 0), y = c(1, 1, 0.5))
 size_factor=0.75
-ggsave('supp_fig1.pdf',
-       plot = supp_fig1,
+ggsave('extended_data_fig1.pdf',
+       plot = extended_data_fig1,
        path = fig_output_path,
        width = 364*size_factor,
        height = 247*size_factor,
@@ -110,7 +110,7 @@ load("code/plots/fraudProb_by_preferred_density.rdata")
 load("code/plots/priorFraud_by_priorWin_preferred_scatter.rdata")
 load("code/plots/bar_plot_pref_cat.rdata")
 
-supp_fig2 = ggarrange(ggarrange(prefStrength_by_preferred_density, winProb_by_preferred_density, fraudProb_by_preferred_density, priorFraud_by_priorWin_preferred_scatter,
+extended_data_fig2 = ggarrange(ggarrange(prefStrength_by_preferred_density, winProb_by_preferred_density, fraudProb_by_preferred_density, priorFraud_by_priorWin_preferred_scatter,
                       labels = c("A", "B", "C", "D"),
                       ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom"),
                       bar_plot_pref_cat,
@@ -121,8 +121,8 @@ supp_fig2 = ggarrange(ggarrange(prefStrength_by_preferred_density, winProb_by_pr
 )
 
 size_factor = 0.75
-ggsave('supp_fig2.pdf',
-       plot = supp_fig2,
+ggsave('extended_data_fig2.pdf',
+       plot = extended_data_fig2,
        path = fig_output_path,
        width = 350*size_factor,
        height = 150*size_factor,
@@ -135,14 +135,14 @@ load("code/plots/model_fraud_update.rdata")
 load("code/plots/OD_fraud_update_u095.rdata")
 load("code/plots/fraudonly_fraud_update.rdata")
 load("code/plots/randombeneficiary_fraud_update.rdata")
-supp_fig3 = ggarrange(model_fraud_update,  OD_fraud_update_u095,
+extended_data_fig3 = ggarrange(model_fraud_update,  OD_fraud_update_u095,
                       fraudonly_fraud_update, randombeneficiary_fraud_update,
                       labels = c("A", "B", "C", "D"),
                       ncol = 2, nrow = 2,
                       common.legend = TRUE, legend = "bottom")
 size_factor = 0.75
-ggsave('supp_fig3.pdf',
-       plot = supp_fig3,
+ggsave('extended_data_fig3.pdf',
+       plot = extended_data_fig3,
        path = fig_output_path,
        width = 250*size_factor,
        height = 260*size_factor,
@@ -153,60 +153,76 @@ ggsave('supp_fig3.pdf',
 load("code/plots/model_v_update.rdata")
 load("code/plots/OD_v_update_u055.rdata")
 load("code/plots/OD_v_update_u095.rdata")
-supp_fig4 = as_ggplot(grid.arrange(model_v_update, OD_v_update_u055, OD_v_update_u095, ncol = 2, layout_matrix=rbind(c(NA,1,1,NA), c(2,2,3,3))))
+extended_data_fig4 = as_ggplot(grid.arrange(model_v_update, OD_v_update_u055, OD_v_update_u095, ncol = 2, layout_matrix=rbind(c(NA,1,1,NA), c(2,2,3,3))))
 
 
 size_factor = 0.75
-ggsave('supp_fig4.pdf',
-       plot = supp_fig4,
+ggsave('extended_data_fig4.pdf',
+       plot = extended_data_fig4,
        path = fig_output_path,
        width = 250*size_factor,
        height = 260*size_factor,
        units = "mm",
        dpi = 300)
 
-# Extended Data Fig. 5 - heat maps for c and v and for pref by c and v
-load("code/plots/heat_map_dems.rdata")
-load("code/plots/heat_map_reps.rdata")
-load("code/plots/heat_map_pref_dems.rdata")
-load("code/plots/heat_map_pref_reps.rdata")
-
-supp_fig5 = ggarrange(heat_map_dems, heat_map_reps,
-                       heat_map_pref_dems, heat_map_pref_reps,
-                       labels = c("A", "B", "C", "D"),
-                       ncol = 2, nrow = 2)
-
-ggsave('supp_fig5.pdf',
-       plot = supp_fig5,
-       path = fig_output_path,
-       width = 10,
-       height = 8,
-       units = "in",
-       dpi = 300)
-
-# Extended Data Fig. 6 - model fit
+# Extended Data Fig. 5 - model fit
 load("code/plots/scatter_predicted_actual_f_update_models.rdata")
 
-supp_fig6 = scatter_predicted_actual_f_update_models
+extended_data_fig5 = scatter_predicted_actual_f_update_models
 
 size_factor=0.75
-ggsave('supp_fig6.pdf',
-       plot = supp_fig6,
+ggsave('extended_data_fig5.pdf',
+       plot = extended_data_fig5,
        path = fig_output_path,
        width = 180*size_factor,
        height = 150*size_factor,
        units = "mm",
        dpi = 300)   
 
+# Extended Data Figure 6
+load("code/plots/partisan_direction_desirability_effect_prepost_models.rdata")
+extended_data_fig6 = ggarrange(partisan_direction_desirability_effect_prepost_models[[1]], partisan_direction_desirability_effect_prepost_models[[2]],
+                               partisan_direction_desirability_effect_prepost_models[[3]], partisan_direction_desirability_effect_prepost_models[[4]],
+                               common.legend = TRUE, legend = "bottom",
+                               labels = c("A", "B", "C", "D"),
+                               nrow = 2, ncol = 2)
+size_factor = 1
+ggsave('extended_data_fig6.pdf',
+       plot = extended_data_fig6,
+       path = fig_output_path,
+       width = 180 * size_factor,
+       height = 180 * size_factor,
+       units = "mm",
+       dpi = 300)
 
-# Extended Data Fig. 7 - predictions for fraud update as a function of prior win belief across models
+# Extended Data Fig. 7 - heat maps for c and v and for pref by c and v
+load("code/plots/heat_map_dems.rdata")
+load("code/plots/heat_map_reps.rdata")
+load("code/plots/heat_map_pref_dems.rdata")
+load("code/plots/heat_map_pref_reps.rdata")
+
+extended_data_fig7 = ggarrange(heat_map_dems, heat_map_reps,
+                               heat_map_pref_dems, heat_map_pref_reps,
+                               labels = c("A", "B", "C", "D"),
+                               ncol = 2, nrow = 2)
+
+ggsave('extended_data_fig7.pdf',
+       plot = extended_data_fig7,
+       path = fig_output_path,
+       width = 10,
+       height = 8,
+       units = "in",
+       dpi = 300)
+
+
+# Extended Data Fig. 8 - predictions for fraud update as a function of prior win belief across models
 load("code/plots/pred_fraudUpdateByPred_models.rdata")
 
-supp_fig7 = pred_fraudUpdateByPred_models
+extended_data_fig8 = pred_fraudUpdateByPred_models
 
 size_factor=0.75
-ggsave('supp_fig7.pdf',
-       plot = supp_fig7,
+ggsave('extended_data_fig8.pdf',
+       plot = extended_data_fig8,
        path = fig_output_path,
        width = 200*size_factor,
        height = 200*size_factor,
@@ -214,19 +230,20 @@ ggsave('supp_fig7.pdf',
        dpi = 300)  
 
 
-# Extended Data Fig. 8 - follow-up survey: fraud likelihood and benefitting candidate
+### SUPP FIGURES
+# Supplementary Figure 1 - follow-up survey: fraud likelihood and benefitting candidate
 load("code/plots/win_fraudless_by_prefcand_bar.rdata")
 load("code/plots/benefited_from_fraud_plot.rdata")
 load("code/plots/plot_fraud_trump.rdata")
 load("code/plots/plot_fraud_biden.rdata")
 
-supp_fig8 = ggarrange(win_fraudless_by_prefcand_bar,benefited_from_fraud_plot,
-                       plot_fraud_trump, plot_fraud_biden, 
-                       labels = c("A", "B", "C", "D"),
-                       ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom")
+supp_fig1 = ggarrange(win_fraudless_by_prefcand_bar,benefited_from_fraud_plot,
+                               plot_fraud_trump, plot_fraud_biden, 
+                               labels = c("A", "B", "C", "D"),
+                               ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom")
 
-ggsave('supp_fig8.pdf',
-       plot = supp_fig8,
+ggsave('supp_fig1.pdf',
+       plot = supp_fig1,
        path = fig_output_path,
        width = 12,
        height = 10,
@@ -234,36 +251,56 @@ ggsave('supp_fig8.pdf',
        dpi = 300)
 
 
-# Extended Data Fig. 9 - follow-up survey: activities participants considered as fraud and beneficier of fraud activities
+# Supplementary Figure 2 - follow-up survey: activities participants considered as fraud and beneficier of fraud activities
 load("code/plots/fraud_activities_bar.rdata")
 load("code/plots/fraud_benefit_density.rdata")
-supp_fig9 = ggarrange(fraud_activities_bar, fraud_benefit_density,
-                       common.legend = TRUE, legend = "bottom",
-                       labels = c("A", "B"),
-                       nrow = 2, ncol = 1,
-                       heights = c(1,1.8))
+supp_fig2 = ggarrange(fraud_activities_bar, fraud_benefit_density,
+                                common.legend = TRUE, legend = "bottom",
+                                labels = c("A", "B"),
+                                nrow = 2, ncol = 1,
+                                heights = c(1,1.8))
 
 
-ggsave('supp_fig9.pdf',
-       plot = supp_fig9,
+ggsave('supp_fig2.pdf',
+       plot = supp_fig2,
        path = fig_output_path,
        width = 190,
        height = 207,
        units = "mm",
        dpi = 300)
 
-# Extended Data Fig. 10 - intervention comparison
+# Supplementary Fig. 3 - intervention comparison
 load("code/plots/intervention_comparison_plot")
-supp_fig10 = intervention_comparison_plot
+supp_fig3 = intervention_comparison_plot
 
 size_factor = 0.75
-ggsave('supp_fig10.pdf',
-       plot = supp_fig10,
+ggsave('supp_fig3.pdf',
+       plot = supp_fig3,
        path = fig_output_path,
        width = 220 * size_factor,
        height = 180 * size_factor,
        units = "mm",
        dpi = 300)
+
+# Supplementary Figure 4 - shrinked priors simulation
+load("code/plots/shrinked_priors/pred_fraudUpdateByPref_bayesian.rdata")
+shrinked_priors = pred_fraudUpdateByPref_bayesian
+load("code/plots/pred_fraudUpdateByPref_bayesian.rdata")
+
+supp_fig4 = ggarrange(pred_fraudUpdateByPref_bayesian, shrinked_priors,
+                      common.legend = TRUE, legend = "bottom",
+                      labels = c("A", "B"),
+                      nrow = 1, ncol = 2)
+
+
+ggsave('supp_fig4.pdf',
+       plot = supp_fig4,
+       path = fig_output_path,
+       width = 190,
+       height = 110,
+       units = "mm",
+       dpi = 300)
+
 
 ### SUPP TABLES
 load("code/plots/model_belief_update_loss_table.rdata")
@@ -277,14 +314,14 @@ load("code/plots/loss_rep_table.rdata")
 load("code/plots/win_rep_table.rdata")
 load("code/plots/fraud_likelihood_ord_reg_tbl.rdata")
 
-supp_table_2 = model_belief_update_loss_table
-supp_table_3 = model_belief_update_win_table
-supp_table_5 = model1_all_prereg_table
-supp_table_6 = model1_dem_prereg_table
-supp_table_7 = model1_rep_prereg_table
-supp_table_8 = loss_dem_table
-supp_table_9 = win_dem_table
-supp_table_10 = loss_rep_table
-supp_table_11 = win_rep_table
-supp_table_13 = fraud_likelihood_ord_reg_tbl
+supp_table_4 = model_belief_update_loss_table
+supp_table_5 = model_belief_update_win_table
+supp_table_6 = model1_all_prereg_table
+supp_table_7 = model1_dem_prereg_table
+supp_table_8 = model1_rep_prereg_table
+supp_table_9 = loss_dem_table
+supp_table_10 = win_dem_table
+supp_table_11 = loss_rep_table
+supp_table_12 = win_rep_table
+supp_table_14 = fraud_likelihood_ord_reg_tbl
 
