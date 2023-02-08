@@ -1,5 +1,5 @@
 # this script includes exploratory analysis of the follow-up survey
-# the analysis of the Bayesian model is in a different script
+# the computational models are in a different script
 # written by Rotem Botvinik-Nezer
 
 ################
@@ -47,6 +47,10 @@ combined_data$followup = !combined_data$no_followup & !combined_data$excluded_fo
 # can completion of the follow up survey be predicted from the original survey characteristics?
 pred_followup = glm(followup ~ 1 + PrefCand + PrefStrength + FraudProb + age.x, data=filter(combined_data,!combined_data$excluded_followup), na.action=na.omit, family=binomial)
 summary(pred_followup)
+pred_followup_table = tbl_regression(pred_followup, intercept = TRUE,
+                                               label = list(FraudProb ~ "Prior fraud belief", PrefCand ~ "Preferred candidate", PrefStrength ~ "Preference strength", age.x ~ "Age")) %>%
+  bold_p(t = 0.05) %>%
+  italicize_levels()
 print(paste("The follow-up sample includes ", sum(combined_data$followup), " participants", sep = ""))
 print(paste("Of which ", round(sum(combined_data$followup & combined_data$PrefCand=="Rep") / sum(combined_data$followup) * 100,1), "% are Republicans", sep = ""))
 print(paste("Compared to ", round(sum(!combined_data$completed_followup & combined_data$PrefCand=="Rep") / sum(!combined_data$completed_followup) * 100,1) , "% of participants who did not complete the follow-up survey", sep = ""))

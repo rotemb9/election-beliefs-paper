@@ -771,33 +771,45 @@ r_comparison_bayes_win_loss = paired.r(cor_empirical_predicted_loss, cor_empiric
 detach("package:psych") 
 
 ## statistically test desirability effects in the predictions of the Bayesian model
-# orgnize and z -score variables
-data2fit$numericEndTime = as.numeric(data2fit$T_end)
+# organize and z -score variables
+#data2fit$numericEndTime = as.numeric(data2fit$T_end)
+data2fit_by_T_end = data2fit[order(data2fit$T_end),]
+data2fit_by_T_end$T_end_order = 1:nrow(data2fit_by_T_end)
+data2fit = data2fit_by_T_end[order(data2fit_by_T_end$participant_num),]
 data2fit$PrefStrength_z = scale(data2fit$PrefStrength, center = TRUE, scale=TRUE)
 data2fit$WinProb_z = scale(data2fit$WinProb, center = TRUE, scale=TRUE)
 data2fit$FraudProb_z = scale(data2fit$FraudProb, center = TRUE, scale=TRUE)
 data2fit$pred_fraud_update_z = scale(data2fit$pred_fraud_update, center = TRUE, scale=TRUE)
-data2fit$age_z = scale(data2fit$age, center = TRUE, scale=TRUE)
-data2fit$numericEndTime_z = scale(data2fit$numericEndTime, center = TRUE, scale=TRUE)
-data2fit$PrefCand = as.factor(data2fit$PrefCand)
+data2fit$age_z = scale(data2fit$age.x, center = TRUE, scale=TRUE)
+data2fit$numericEndTime_z = scale(data2fit$T_end_order, center = TRUE, scale=TRUE)
+data2fit$PrefCand = droplevels(as.factor(data2fit$PrefCand))
 contrasts(data2fit$PrefCand) = contr.sum(2)
 
 # test fraud belief updating
 data2fit$pred_fraud_update_unscaled = data2fit$pred_fraud_update*100
+data2fit$pred_fraud_update_unscaled_z = scale(data2fit$pred_fraud_update_unscaled, center = TRUE, scale=TRUE)
 #print("Predicted fraud belief update")
 # loss
 #print(paste("LOSS scenario: N = ", sum(!data2fit$MapMatchPrefer), "; mean: ",round(mean(data2fit$pred_fraud_update_unscaled[!data2fit$MapMatchPrefer]),2)," SD: ", round(sd(data2fit$pred_fraud_update_unscaled[!data2fit$MapMatchPrefer]),2), sep=""))
 loss_t = t.test(data2fit$pred_fraud_update_unscaled[!data2fit$MapMatchPrefer])
 #print(paste("t-test fraud belief update loss scenario: t(df =", loss_t$parameter,  ") =", round(loss_t$statistic,2), ", p =", round(loss_t$p.value,4),  sep = " ")) 
-model_belief_update_loss = lm(pred_fraud_update_unscaled ~ 1 + FraudProb + PrefCand + PrefStrength + WinProb +  age.x, data=data2fit[!data2fit$MapMatchPrefer,], na.action=na.omit)
+model_belief_update_loss = lm(pred_fraud_update_unscaled_z ~ 1 + FraudProb_z + PrefCand + PrefStrength_z + WinProb_z +  age_z, data=data2fit[!data2fit$MapMatchPrefer,], na.action=na.omit)
 #summary(model_belief_update_loss)
+model_belief_update_loss_table = tbl_regression(model_belief_update_loss, intercept = TRUE,
+                                                label = list(FraudProb_z ~ "Prior fraud belief", PrefCand ~ "Preferred candidate", PrefStrength_z ~ "Preference strength", WinProb_z ~ "Prior win belief", age_z ~ "Age")) %>%
+  bold_p(t = 0.05) %>%
+  italicize_levels()
 # win
 #print(paste("WIN scenario: N = ", sum(data2fit$MapMatchPrefer), "; mean: ",round(mean(data2fit$pred_fraud_update_unscaled[data2fit$MapMatchPrefer]),2)," SD: ", round(sd(data2fit$pred_fraud_update_unscaled[data2fit$MapMatchPrefer]),2), sep=""))
 win_t = t.test(data2fit$pred_fraud_update_unscaled[data2fit$MapMatchPrefer])
 #print(paste("t-test fraud belief update win scenario: t(df =", win_t$parameter,  ") =", round(win_t$statistic,2), ", p =", round(win_t$p.value,4),  sep = " ")) 
-model_belief_update_win = lm(pred_fraud_update_unscaled ~ 1 + FraudProb + PrefCand + PrefStrength + WinProb +  age.x, data=data2fit[data2fit$MapMatchPrefer,], na.action=na.omit)
+model_belief_update_win = lm(pred_fraud_update_unscaled_z ~ 1 + FraudProb_z + PrefCand + PrefStrength_z + WinProb_z +  age_z, data=data2fit[data2fit$MapMatchPrefer,], na.action=na.omit)
 #summary(model_belief_update_win)
-  
+model_belief_update_win_table = tbl_regression(model_belief_update_win, intercept = TRUE,
+                                               label = list(FraudProb_z ~ "Prior fraud belief", PrefCand ~ "Preferred candidate", PrefStrength_z ~ "Preference strength", WinProb_z ~ "Prior win belief", age_z ~ "Age")) %>%
+  bold_p(t = 0.05) %>%
+  italicize_levels()
+
 ## Compare the patterns of predictions across the models
 # choose models to plot
 models_for_plots = c("bayes","outcomedesire","fraudonly","randombeneficiary")

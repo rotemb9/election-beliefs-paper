@@ -1,4 +1,4 @@
-# this script praganizes and saves the figures
+# this script organizes and saves the figures
 # written by Rotem Botvinik-Nezer
 
 # load libraries
@@ -90,16 +90,17 @@ load("code/plots/preferred_by_affiliation_bar.rdata")
 load("code/plots/state_by_preferred_bar.rdata")
 load("code/plots/age_by_preferred_density.rdata")
 extended_data_fig1 = as_ggplot(grid.arrange(preferred_by_affiliation_bar,state_by_preferred_bar, age_by_preferred_density,
-                                    ncol = 2, nrow = 2,
-                                    layout_matrix = cbind(c(1,3), c(2,2)))) +
+                                            ncol = 2, nrow = 2,
+                                            layout_matrix = cbind(c(1,3), c(2,2)),
+                                            widths = c(1,1.5))) +
   draw_plot_label(label = c("A", "B", "C"), size = 12,
                   x = c(0, 0.5, 0), y = c(1, 1, 0.5))
 size_factor=0.75
 ggsave('extended_data_fig1.pdf',
        plot = extended_data_fig1,
        path = fig_output_path,
-       width = 364*size_factor,
-       height = 247*size_factor,
+       width = 250*size_factor,
+       height = 200*size_factor,
        units = "mm",
        dpi = 300)
 
@@ -111,21 +112,20 @@ load("code/plots/priorFraud_by_priorWin_preferred_scatter.rdata")
 load("code/plots/bar_plot_pref_cat.rdata")
 
 extended_data_fig2 = ggarrange(ggarrange(prefStrength_by_preferred_density, winProb_by_preferred_density, fraudProb_by_preferred_density, priorFraud_by_priorWin_preferred_scatter,
-                      labels = c("A", "B", "C", "D"),
-                      ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom"),
-                      bar_plot_pref_cat,
-                      labels= c("", "E"),
-                      ncol = 2, nrow = 1,
-                      widths = c(1.5,1)
-                      
+                                         labels = c("A", "B", "C", "D"),
+                                         ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom"),
+                               bar_plot_pref_cat,
+                               labels= c("", "E"),
+                               ncol = 1, nrow = 2,
+                               heights = c(1.2,1)
 )
 
 size_factor = 0.75
 ggsave('extended_data_fig2.pdf',
        plot = extended_data_fig2,
        path = fig_output_path,
-       width = 350*size_factor,
-       height = 150*size_factor,
+       width = 160*size_factor,
+       height = 260*size_factor,
        units = "mm",
        dpi = 300)
 
@@ -209,8 +209,8 @@ extended_data_fig7 = ggarrange(heat_map_dems, heat_map_reps,
 ggsave('extended_data_fig7.pdf',
        plot = extended_data_fig7,
        path = fig_output_path,
-       width = 10,
-       height = 8,
+       width = 8,
+       height = 6.5,
        units = "in",
        dpi = 300)
 

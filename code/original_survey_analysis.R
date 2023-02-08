@@ -1,4 +1,4 @@
-# this script includes descriptive stats, tests and visualizations for the data of the original survey
+# this script includes the statistical tests of the data of the original survey
 # written by Rotem Botvinik-Nezer
 
 ################
@@ -108,6 +108,10 @@ save(model_belief_update_win_table, file="code/plots/model_belief_update_win_tab
 model_belief_update_win_without_state = lm(DeltaFraudProb_z ~ 1 + FraudProb_z + PrefCand + PrefStrength_z + WinProb_z +  age_z + numericEndTime_z, data=data2fit[data2fit$MapMatchPrefer & !is.na(data2fit$state),], na.action=na.omit)
 model_belief_update_win_with_state = lm(DeltaFraudProb_z ~ 1 + FraudProb_z + PrefCand + PrefStrength_z + WinProb_z +  age_z + numericEndTime_z + state, data=data2fit[data2fit$MapMatchPrefer & !is.na(data2fit$state),], na.action=na.omit)
 anova(model_belief_update_win_without_state,model_belief_update_win_with_state)
+
+## compare update in the Biden wins vs. Trump wins scenario
+biden_vs_trump_var_test = var.test(abs(data2fit$DeltaFraudProb[data2fit$Map=="Dem"]), abs(data2fit$DeltaFraudProb[data2fit$Map=="Rep"]))
+biden_vs_trump_t_test = t.test(abs(data2fit$DeltaFraudProb[data2fit$Map=="Dem"]), abs(data2fit$DeltaFraudProb[data2fit$Map=="Rep"]), paired = F, var.equal = biden_vs_trump_var_test$p.value>0.05)
 
 ## validate robustness
 # same model without age (because some participants did not report their age and are therefore excluded above)
